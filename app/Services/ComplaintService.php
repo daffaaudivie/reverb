@@ -25,6 +25,8 @@ class ComplaintService
         $complaint->update([
             'status' => $status,
         ]);
+        
+        event(new StatusUpdated($complaint));
 
         return $complaint->load(['category', 'user']);
     }
