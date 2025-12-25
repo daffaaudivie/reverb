@@ -4,37 +4,47 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Complaint;
+use Illuminate\Support\Facades\Log;
 
-class StatusUpdated implements ShouldBroadcast
+class StatusUpdated implements ShouldBroadcastNow  
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
-
-    /**
-     * Create a new event instance.
-     */
     public function __construct(
         public Complaint $complaint
-    ) {}
-
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
-     */
+    ) {
+        Log::info('StatusUpdated event created', [
+            'complaint_id' => $complaint->id,
+            'status' => $complaint->status->value
+        ]);
+    }
 
     public function broadcastWith(): array
     {
-        return [
-            'complaint' => new ComplaintResource(
-                $this->complaint->load(['category', 'user'])
-            ),
+        $data = [
+            'complaint' => [
+                'data' => [
+                    'id' => $this->complaint->id,
+                    'title' => $this->complaint->title,
+                    'status' => $this->complaint->status->value,
+                    'category' => [
+                        'name' => $this->complaint->category->name ?? null
+                    ],
+                    'user' => [
+                        'name' => $this->complaint->user->name ?? null
+                    ],
+                ]
+            ]
         ];
+
+        Log::info('Broadcasting data', $data);
+
+        return $data;
     }
+
     public function broadcastOn(): Channel
     {
         return new Channel('complaints');
@@ -44,5 +54,4 @@ class StatusUpdated implements ShouldBroadcast
     {
         return 'complaint.status.updated';
     }
-
 }
